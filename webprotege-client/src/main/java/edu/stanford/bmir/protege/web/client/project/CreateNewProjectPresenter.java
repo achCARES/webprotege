@@ -85,6 +85,14 @@ public class CreateNewProjectPresenter {
             view.showProjectNameMissingMessage();
             return false;
         }
+        if (view.getProjectEndpoint().isEmpty()) {
+            view.showProjectEndpointMissingMessage();
+            return false;
+        }
+        if (view.getProjectTboxGraph().isEmpty()) {
+            view.showProjectTBoxGraphMissingMessage();
+            return false;
+        }
         return true;
     }
 
@@ -108,6 +116,8 @@ public class CreateNewProjectPresenter {
         NewProjectSettings newProjectSettings = NewProjectSettings.get(
                 loggedInUserManager.getLoggedInUserId(),
                 view.getProjectName(),
+                view.getProjectEndpoint(),
+                view.getProjectTboxGraph(),
                 view.getProjectLanguage(),
                 view.getProjectDescription());
         submitCreateNewProjectRequest(newProjectSettings, projectCreatedHandler);

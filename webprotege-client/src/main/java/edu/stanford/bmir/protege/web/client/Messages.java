@@ -692,7 +692,14 @@ public interface Messages extends com.google.gwt.i18n.client.Messages {
     @Key("projectName")
     String projectName();
 
-    
+    @DefaultMessage("SPARQL endpoint")
+    @Key("projectEndpoint")
+    String projectEndpoint();
+
+    @DefaultMessage("TBox graph name")
+    @Key("projectTboxGraph")
+    String projectTboxGraph();
+
     @DefaultMessage("Please enter a project name")
     @Key("projectNameMissingErrorMessage")
     String projectNameMissingErrorMessage();

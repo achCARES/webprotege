@@ -383,7 +383,7 @@
                 <activeByDefault>true</activeByDefault>
             </activation>
             <properties>
-                <data.directory>/srv/webprotege</data.directory>
+                <data.directory>/opt/srv/webprotege</data.directory>
             </properties>
 
         </profile>
@@ -397,14 +397,14 @@
         <profile>
             <id>deployment</id>
             <properties>
-                <data.directory>/srv/webprotege</data.directory>
+                <data.directory>/opt/srv/webprotege</data.directory>
             </properties>
         </profile>
         <!-- Profile for producing a release of WebProtege that people can download and install locally -->
         <profile>
             <id>webprotege.release</id>
             <properties>
-                <data.directory>/srv/webprotege</data.directory>
+                <data.directory>/opt/srv/webprotege</data.directory>
             </properties>
             <build>
                 <plugins>

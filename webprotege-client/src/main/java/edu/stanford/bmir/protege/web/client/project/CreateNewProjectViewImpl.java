@@ -45,6 +45,12 @@ public class CreateNewProjectViewImpl extends Composite implements CreateNewProj
     @UiField(provided = true)
     DefaultLanguageEditor projectLanguageField;
 
+    @UiField
+    TextBox projectEndpointField;
+
+    @UiField
+    TextBox projectTboxGraphField;
+
     @Nonnull
     private final MessageBox messageBox;
 
@@ -63,6 +69,18 @@ public class CreateNewProjectViewImpl extends Composite implements CreateNewProj
     @Override
     public String getProjectName() {
         return projectNameField.getText().trim();
+    }
+
+    @Nonnull
+    @Override
+    public String getProjectTboxGraph() {
+        return projectTboxGraphField.getText().trim();
+    }
+
+    @Nonnull
+    @Override
+    public String getProjectEndpoint() {
+        return projectEndpointField.getText().trim();
     }
 
     @Nonnull
@@ -111,6 +129,16 @@ public class CreateNewProjectViewImpl extends Composite implements CreateNewProj
     @Override
     public void showProjectNameMissingMessage() {
         messageBox.showAlert("Project name missing", "Please enter a project name");
+    }
+
+    @Override
+    public void showProjectEndpointMissingMessage() {
+        messageBox.showAlert("Project endpoint missing", "Please enter valid project endpoint IRI");
+    }
+
+    @Override
+    public void showProjectTBoxGraphMissingMessage() {
+        messageBox.showAlert("Project TBox graph name missing", "Please enter a project target TBox graph name");
     }
 
     @Override

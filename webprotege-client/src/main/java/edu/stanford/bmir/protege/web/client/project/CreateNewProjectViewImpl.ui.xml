@@ -28,6 +28,14 @@
             <label class="{wp.style.formHelpText} {style.helpText}"><ui:safehtml from="{msg.projectSettings_language_helpText}"/></label>
         </div>
         <div class="{wp.style.formGroup}">
+            <g:Label text="{msg.projectEndpoint}" addStyleNames="{wp.style.formLabel}"/>
+            <g:TextBox ui:field="projectEndpointField" addStyleNames="{style.formField}"/>
+        </div>
+        <div class="{wp.style.formGroup}">
+            <g:Label text="{msg.projectTboxGraph}" addStyleNames="{wp.style.formLabel}"/>
+            <g:TextBox ui:field="projectTboxGraphField" addStyleNames="{style.formField}"/>
+        </div>
+        <div class="{wp.style.formGroup}">
             <g:Label text="{msg.projectSettings_description}"  addStyleNames="{wp.style.formLabel}"/>
             <g:TextArea ui:field="projectDescriptionField" addStyleNames="{style.formField}" visibleLines="5"/>
         </div>

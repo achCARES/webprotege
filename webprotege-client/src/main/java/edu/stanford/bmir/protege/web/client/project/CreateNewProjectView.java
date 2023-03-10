@@ -21,6 +21,12 @@ public interface CreateNewProjectView extends HasInitialFocusable, IsWidget {
     @Nonnull
     String getProjectName();
 
+    @Nonnull
+    String getProjectTboxGraph();
+
+    @Nonnull
+    String getProjectEndpoint();
+
     /**
      * Gets a description for the new project.
      */
@@ -73,4 +79,9 @@ public interface CreateNewProjectView extends HasInitialFocusable, IsWidget {
      * Displays a message saying that the project name is missing
      */
     void showProjectNameMissingMessage();
+
+    void showProjectTBoxGraphMissingMessage();
+
+    void showProjectEndpointMissingMessage();
+
 }

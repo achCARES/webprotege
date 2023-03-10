@@ -28,6 +28,10 @@ public abstract class NewProjectSettings implements IsSerializable {
 
     private static final String DISPLAY_NAME = "displayName";
 
+    private static final String PROJECT_ENDPOINT = "projectEndpoint";
+
+    private static final String TBOX_GRAPH = "tboxGraph";
+
     private static final String LANG_TAG = "langTag";
 
     private static final String DESCRIPTION = "description";
@@ -61,15 +65,19 @@ public abstract class NewProjectSettings implements IsSerializable {
      *
      * @param projectOwner       The desired owner of the project.  Not null.
      * @param displayName        The desired project name for the new project.  Not {@code null}.
+     * @param projectEndpoint
+     * @param tboxGraph
      * @param langTag            The langTag to be used for new entities.
      * @param projectDescription The desired project description for the new project.  Not {@code null}.
      * @throws NullPointerException if either projectOwner, displayName or projectDescription are null.
      */
     @JsonCreator
     public static NewProjectSettings get(@JsonProperty(PROJECT_OWNER) UserId projectOwner,
-                                         @JsonProperty(DISPLAY_NAME) String displayName,
-                                         @JsonProperty(LANG_TAG) String langTag,
-                                         @JsonProperty(DESCRIPTION) String projectDescription) {
+        @JsonProperty(DISPLAY_NAME) String displayName,
+        @JsonProperty(PROJECT_ENDPOINT) String projectEndpoint,
+        @JsonProperty(TBOX_GRAPH) String tboxGraph,
+        @JsonProperty(LANG_TAG) String langTag,
+        @JsonProperty(DESCRIPTION) String projectDescription) {
         return new AutoValue_NewProjectSettings(projectOwner,
                                                 displayName,
                                                 langTag,

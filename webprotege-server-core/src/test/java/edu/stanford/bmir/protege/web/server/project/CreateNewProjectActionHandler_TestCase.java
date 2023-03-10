@@ -84,6 +84,8 @@ public class CreateNewProjectActionHandler_TestCase {
         displayNameSettingsFactory = new DefaultDisplayNameSettingsFactory();
         newProjectSettings = NewProjectSettings.get(UserId.getUserId("The Owner"),
                                                     "The display name",
+                                                    "SPARQL Endpoint",
+                                                    "TBox Graph",
                                                     langTag,
                                                     "The Project Description");
         handler = new CreateNewProjectActionHandler(projectManager,
