@@ -36,6 +36,8 @@ public class ProjectDetails_Serialization_TestCase {
                                             UserId.getUserId("The Owner"),
                                             true,
                                             DictionaryLanguage.rdfsLabel("en-GB"),
+                                            "https://sparql.com/endpoint",
+                                            "graph",
                                             DisplayNameSettings.get(ImmutableList.of(DictionaryLanguage.rdfsLabel("en-GB"),
                                                                                      DictionaryLanguage.rdfsLabel("en"),
                                                                                      DictionaryLanguage.rdfsLabel("")),

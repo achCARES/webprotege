@@ -41,6 +41,8 @@ public class ProjectDetailsTestCase {
     @Mock
     private UserId modifiedBy;
 
+    private String projectEndpoint;
+    private String tboxGraph;
 
     private String displayName;
 
@@ -56,6 +58,8 @@ public class ProjectDetailsTestCase {
                                             owner,
                                             IN_TRASH,
                                             DictionaryLanguage.rdfsLabel(""),
+                                            projectEndpoint,
+                                            tboxGraph,
                                             DisplayNameSettings.empty(),
                                             createdAt,
                                             createdBy,

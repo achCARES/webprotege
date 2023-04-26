@@ -42,6 +42,8 @@ public abstract class NewProjectSettings implements IsSerializable {
      *
      * @param projectOwner       The desired owner of the project.  Not null.
      * @param displayName        The desired project name for the new project.  Not null.
+     * @param projectEndpoint
+     * @param tboxGraph
      * @param projectDescription The desired project description for the new project.  Not null.
      * @param sourceDocumentId   A {@link DocumentId} object that should be used to identify the source document with
      *                           which to initialise a project.  May be null.
@@ -51,11 +53,15 @@ public abstract class NewProjectSettings implements IsSerializable {
     public static NewProjectSettings get(@Nonnull UserId projectOwner,
                                          @Nonnull String displayName,
                                          @Nonnull String langTag,
-                                         @Nonnull String projectDescription,
+                                        @Nonnull String projectEndpoint,
+                                        @Nonnull String tboxGraph,
+                                        @Nonnull String projectDescription,
                                          @Nonnull DocumentId sourceDocumentId) {
         return new AutoValue_NewProjectSettings(projectOwner,
                                                 displayName,
                                                 langTag,
+                                                projectEndpoint,
+                                                tboxGraph,
                                                 projectDescription,
                                                 sourceDocumentId);
     }
@@ -74,15 +80,16 @@ public abstract class NewProjectSettings implements IsSerializable {
     @JsonCreator
     public static NewProjectSettings get(@JsonProperty(PROJECT_OWNER) UserId projectOwner,
         @JsonProperty(DISPLAY_NAME) String displayName,
+        @JsonProperty(LANG_TAG) String langTag,
         @JsonProperty(PROJECT_ENDPOINT) String projectEndpoint,
         @JsonProperty(TBOX_GRAPH) String tboxGraph,
-        @JsonProperty(LANG_TAG) String langTag,
         @JsonProperty(DESCRIPTION) String projectDescription) {
         return new AutoValue_NewProjectSettings(projectOwner,
                                                 displayName,
                                                 langTag,
-                                                projectDescription,
-                                                null);
+                                                projectEndpoint,
+                                                tboxGraph,
+                                                projectDescription, null);
     }
 
     /**
@@ -103,12 +110,32 @@ public abstract class NewProjectSettings implements IsSerializable {
     @Nonnull
     public abstract String getDisplayName();
 
+
     /**
      * Gets the langTag that is used for new entities and for the primary display name.
      */
     @JsonProperty(LANG_TAG)
     @Nonnull
     public abstract String getLangTag();
+
+    /**
+     * Gets the SPARQL Endpoint of the project.
+     *
+     * @return A string representing the SPARQL Endpoint.  Not null.
+     */
+    @JsonProperty(PROJECT_ENDPOINT)
+    @Nonnull
+    public abstract String getProjectEndpoint();
+
+    /**
+     * Gets the desired TBox graph of the project.
+     *
+     * @return A string representing the TBox graph name.  Not null.
+     */
+    @JsonProperty(TBOX_GRAPH)
+    @Nonnull
+    public abstract String getTboxGraph();
+
 
 
     /**

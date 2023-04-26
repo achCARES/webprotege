@@ -68,6 +68,8 @@ public class ProjectDetailsManagerImpl implements ProjectDetailsManager {
                 settings.getProjectOwner(),
                 false,
                 DictionaryLanguage.rdfsLabel(settings.getLangTag()),
+                settings.getProjectEndpoint(),
+                settings.getTboxGraph(),
                 displayNameSettingsFactory.getDefaultDisplayNameSettings(settings.getLangTag()),
                 now,
                 settings.getProjectOwner(),
@@ -142,6 +144,8 @@ public class ProjectDetailsManagerImpl implements ProjectDetailsManager {
                                    projectDetails.getDisplayName(),
                                    projectDetails.getDescription(),
                                    projectDetails.getDefaultDictionaryLanguage(),
+                                   projectDetails.getProjectEndpoint(),
+                                   projectDetails.getTboxGraph(),
                                    projectDetails.getDefaultDisplayNameSettings(),
                                    SlackIntegrationSettings.get(slackPayloadUrl),
                                    WebhookSettings.get(webhookSettings));

@@ -35,6 +35,8 @@ public class AllProjectSettings_Serialization_TestCase {
                                                   "My project",
                                                   "My project description",
                                                   DictionaryLanguage.rdfsLabel("fr"),
+                                    "https://sparql.com/endpoint",
+                                        "graph",
                                                   DisplayNameSettings.get(ImmutableList.of(), ImmutableList.of()),
                                                   SlackIntegrationSettings.get("http://payloadurl"),
                                                   WebhookSettings.get(ImmutableList.of()));

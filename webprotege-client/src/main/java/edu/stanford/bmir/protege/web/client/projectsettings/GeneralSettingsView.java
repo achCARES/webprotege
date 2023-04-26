@@ -16,6 +16,17 @@ public interface GeneralSettingsView extends IsWidget {
     @Nonnull
     String getDisplayName();
 
+    void setProjectEndpoint(@Nonnull String projectEndpoint);
+
+    @Nonnull
+    String getProjectEndpoint();
+
+    void setTboxGraph(@Nonnull String tboxGraph);
+
+    @Nonnull
+    String getTboxGraph();
+
+
     void setDescription(@Nonnull String description);
 
     @Nonnull

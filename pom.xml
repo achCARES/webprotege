@@ -28,6 +28,8 @@
         <auto-factory.version>1.0-beta7</auto-factory.version>
         <junit.version>4.12</junit.version>
         <commonmark.version>0.11.0</commonmark.version>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
     </properties>
 
     <scm>

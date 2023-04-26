@@ -75,6 +75,8 @@ public class ProjectDetailsRepository_IT {
                                             owner,
                                             IN_TRASH,
                                             DictionaryLanguage.rdfsLabel("en"),
+                              "https://sparql.com/endpoint",
+                                  "graph",
                                             DisplayNameSettings.get(ImmutableList.of(DictionaryLanguage.rdfsLabel("en-GB"),
                                                                                      DictionaryLanguage.rdfsLabel("en"),
                                                                                      DictionaryLanguage.rdfsLabel("")),

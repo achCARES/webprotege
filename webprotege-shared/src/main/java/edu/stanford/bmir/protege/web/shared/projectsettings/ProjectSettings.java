@@ -31,6 +31,10 @@ public abstract class ProjectSettings implements Serializable, IsSerializable, W
 
     private static final String DEFAULT_LANGUAGE = "defaultLanguage";
 
+    public static final String PROJECT_ENDPOINT = "projectEndpoint";
+
+    public static final String TBOX_GRAPH = "tboxGraph";
+
     private static final String DEFAULT_DISPLAY_NAME_SETTINGS = "defaultDisplayNameSettings";
 
     private static final String SLACK_INTEGRATION_SETTINGS = "slackIntegrationSettings";
@@ -66,6 +70,14 @@ public abstract class ProjectSettings implements Serializable, IsSerializable, W
     public abstract DictionaryLanguage getDefaultLanguage();
 
     @Nonnull
+    @JsonProperty(PROJECT_ENDPOINT)
+    public abstract String getProjectEndpoint();
+
+    @Nonnull
+    @JsonProperty(TBOX_GRAPH)
+    public abstract String getTboxGraph();
+
+    @Nonnull
     @JsonProperty(DEFAULT_DISPLAY_NAME_SETTINGS)
     public abstract DisplayNameSettings getDefaultDisplayNameSettings();
 
@@ -83,6 +95,8 @@ public abstract class ProjectSettings implements Serializable, IsSerializable, W
                                       @Nonnull @JsonProperty(DISPLAY_NAME) String displayName,
                                       @Nonnull @JsonProperty(DESCRIPTION) String description,
                                       @Nonnull @JsonProperty(DEFAULT_LANGUAGE) DictionaryLanguage defaultLanguage,
+                                      @Nonnull @JsonProperty(PROJECT_ENDPOINT) String projectEndpoint,
+                                      @Nonnull @JsonProperty(TBOX_GRAPH) String tboxGraph,
                                       @Nonnull @JsonProperty(DEFAULT_DISPLAY_NAME_SETTINGS) DisplayNameSettings defaultDisplayNameSettings,
                                       @Nonnull @JsonProperty(SLACK_INTEGRATION_SETTINGS) SlackIntegrationSettings slackIntegrationSettings,
                                       @Nonnull @JsonProperty(WEBHOOK_SETTINGS) WebhookSettings webhookSettings) {
@@ -90,6 +104,8 @@ public abstract class ProjectSettings implements Serializable, IsSerializable, W
                                              displayName,
                                              description,
                                              defaultLanguage,
+                                             projectEndpoint,
+                                             tboxGraph,
                                              defaultDisplayNameSettings,
                                              slackIntegrationSettings,
                                              webhookSettings);
@@ -101,6 +117,8 @@ public abstract class ProjectSettings implements Serializable, IsSerializable, W
                                    getProjectDisplayName(),
                                    getProjectDescription(),
                                    getDefaultLanguage(),
+                                   getProjectEndpoint(),
+                                   getTboxGraph(),
                                    getDefaultDisplayNameSettings(),
                                    getSlackIntegrationSettings(),
                                    getWebhookSettings());

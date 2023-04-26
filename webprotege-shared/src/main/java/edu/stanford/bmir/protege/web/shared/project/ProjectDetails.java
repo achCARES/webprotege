@@ -50,6 +50,10 @@ public abstract class ProjectDetails implements Serializable, Comparable<Project
 
     public static final String DEFAULT_DISPLAY_NAME_SETTINGS = "defaultDisplayNameSettings";
 
+    public static final String PROJECT_ENDPOINT = "projectEndpoint";
+
+    public static final String TBOX_GRAPH = "tboxGraph";
+
     /**
      * Constructs a {@link ProjectDetails} object.
      *
@@ -71,6 +75,8 @@ public abstract class ProjectDetails implements Serializable, Comparable<Project
                                      @Nonnull UserId owner,
                                      boolean inTrash,
                                      @Nonnull DictionaryLanguage dictionaryLanguage,
+                                     @Nonnull String projectEndpoint,
+                                     @Nonnull String tboxGraph,
                                      @Nonnull DisplayNameSettings displayNameSettings,
                                      long createdAt,
                                      @Nonnull UserId createdBy,
@@ -82,6 +88,8 @@ public abstract class ProjectDetails implements Serializable, Comparable<Project
                                             owner,
                                             inTrash,
                                             dictionaryLanguage,
+                                            projectEndpoint,
+                                            tboxGraph,
                                             displayNameSettings,
                                             createdAt,
                                             createdBy,
@@ -102,6 +110,8 @@ public abstract class ProjectDetails implements Serializable, Comparable<Project
                                          @Nonnull @JsonProperty(OWNER) UserId owner,
                                          @JsonProperty(IN_TRASH) boolean inTrash,
                                          @Nullable @JsonProperty(DEFAULT_LANGUAGE) DictionaryLanguage dictionaryLanguage,
+                                         @Nonnull @JsonProperty(PROJECT_ENDPOINT) String projectEndpoint,
+                                         @Nonnull @JsonProperty(TBOX_GRAPH) String tboxGraph,
                                          @Nullable @JsonProperty(DEFAULT_DISPLAY_NAME_SETTINGS) DisplayNameSettings displayNameSettings,
                                          @JsonProperty(CREATED_AT) Instant createdAt,
                                          @JsonProperty(CREATED_BY) @Nonnull UserId createdBy,
@@ -116,6 +126,8 @@ public abstract class ProjectDetails implements Serializable, Comparable<Project
                    owner,
                    inTrash,
                    dl,
+                   projectEndpoint,
+                   tboxGraph,
                    dns,
                    createdAt.toEpochMilli(),
                    createdBy,
@@ -134,6 +146,8 @@ public abstract class ProjectDetails implements Serializable, Comparable<Project
                        getOwner(),
                        isInTrash(),
                        getDefaultDictionaryLanguage(),
+                       getProjectEndpoint(),
+                       getTboxGraph(),
                        getDefaultDisplayNameSettings(),
                        getCreatedAt(),
                        getCreatedBy(),
@@ -153,6 +167,8 @@ public abstract class ProjectDetails implements Serializable, Comparable<Project
                        getOwner(),
                        isInTrash(),
                        getDefaultDictionaryLanguage(),
+                       getProjectEndpoint(),
+                       getTboxGraph(),
                        getDefaultDisplayNameSettings(),
                        getCreatedAt(),
                        getCreatedBy(),
@@ -173,6 +189,8 @@ public abstract class ProjectDetails implements Serializable, Comparable<Project
                        getOwner(),
                        isInTrash(),
                        defaultLanguage,
+                       getProjectEndpoint(),
+                       getTboxGraph(),
                        getDefaultDisplayNameSettings(),
                        getCreatedAt(),
                        getCreatedBy(),
@@ -192,6 +210,8 @@ public abstract class ProjectDetails implements Serializable, Comparable<Project
                        getOwner(),
                        isInTrash(),
                        getDefaultDictionaryLanguage(),
+                       getProjectEndpoint(),
+                       getTboxGraph(),
                        defaultDisplayNameSettings,
                        getCreatedAt(),
                        getCreatedBy(),
@@ -213,6 +233,8 @@ public abstract class ProjectDetails implements Serializable, Comparable<Project
                        getOwner(),
                        inTrash,
                        getDefaultDictionaryLanguage(),
+                       getProjectEndpoint(),
+                       getTboxGraph(),
                        getDefaultDisplayNameSettings(),
                        getCreatedAt(),
                        getCreatedBy(),
@@ -276,6 +298,14 @@ public abstract class ProjectDetails implements Serializable, Comparable<Project
     @JsonProperty(DEFAULT_LANGUAGE)
     @Nonnull
     public abstract DictionaryLanguage getDefaultDictionaryLanguage();
+
+    @JsonProperty(PROJECT_ENDPOINT)
+    @Nonnull
+    public abstract String getProjectEndpoint();
+
+    @JsonProperty(TBOX_GRAPH)
+    @Nonnull
+    public abstract String getTboxGraph();
 
     /**
      * Gets the default display name settings for this project

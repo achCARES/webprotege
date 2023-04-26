@@ -9,6 +9,16 @@
         </g:HTMLPanel>
 
         <g:HTMLPanel addStyleNames="{wp.style.formGroup}">
+            <g:Label text="Project Endpoint" addStyleNames="{wp.style.formLabel}"/>
+            <g:TextBox ui:field="projectEndpointField"/>
+        </g:HTMLPanel>
+
+        <g:HTMLPanel addStyleNames="{wp.style.formGroup}">
+            <g:Label text="TBox Graph" addStyleNames="{wp.style.formLabel}"/>
+            <g:TextBox ui:field="tboxGraphField"/>
+        </g:HTMLPanel>
+
+        <g:HTMLPanel addStyleNames="{wp.style.formGroup}">
             <g:Label text="Description" addStyleNames="{wp.style.formLabel}"/>
             <g:TextArea ui:field="descriptionField" visibleLines="5"/>
         </g:HTMLPanel>

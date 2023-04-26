@@ -28,6 +28,12 @@ public class GeneralSettingsViewImpl extends Composite implements GeneralSetting
     TextBox displayNameField;
 
     @UiField
+    TextBox projectEndpointField;
+
+    @UiField
+    TextBox tboxGraphField;
+
+    @UiField
     TextArea descriptionField;
 
     @Inject
@@ -44,6 +50,28 @@ public class GeneralSettingsViewImpl extends Composite implements GeneralSetting
     @Override
     public String getDisplayName() {
         return displayNameField.getValue().trim();
+    }
+
+    @Override
+    public void setProjectEndpoint(@Nonnull String projectEndpoint) {
+        projectEndpointField.setValue(projectEndpoint);
+    }
+
+    @Nonnull
+    @Override
+    public String getProjectEndpoint() {
+        return projectEndpointField.getValue().trim();
+    }
+
+    @Override
+    public void setTboxGraph(@Nonnull String tboxGraph) {
+        tboxGraphField.setValue(tboxGraph);
+    }
+
+    @Nonnull
+    @Override
+    public String getTboxGraph() {
+        return tboxGraphField.getValue().trim();
     }
 
     @Override
