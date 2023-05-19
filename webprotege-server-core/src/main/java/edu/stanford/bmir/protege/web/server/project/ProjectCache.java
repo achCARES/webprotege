@@ -16,6 +16,7 @@ import edu.stanford.bmir.protege.web.shared.project.ProjectAlreadyExistsExceptio
 import edu.stanford.bmir.protege.web.shared.project.ProjectDocumentNotFoundException;
 import edu.stanford.bmir.protege.web.shared.project.ProjectId;
 import org.semanticweb.owlapi.io.OWLParserException;
+import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -201,9 +202,12 @@ public class ProjectCache implements HasDispose {
     public ProjectId getProject(NewProjectSettings newProjectSettings) throws ProjectAlreadyExistsException, OWLOntologyCreationException, IOException {
         ProjectId projectId = ProjectIdFactory.getFreshProjectId();
         Optional<DocumentId> sourceDocumentId = newProjectSettings.getSourceDocumentId();
+        IRI sparqlEndpoint = IRI.create(newProjectSettings.getProjectEndpoint());
+        String tboxGraph = newProjectSettings.getTboxGraph();
         if(sourceDocumentId.isPresent()) {
             ProjectImporter importer = projectImporterFactory.create(projectId);
-            importer.createProjectFromSources(sourceDocumentId.get(), newProjectSettings.getProjectOwner());
+            importer.createProjectFromSources(sourceDocumentId.get(), newProjectSettings.getProjectOwner(),
+                sparqlEndpoint, tboxGraph);
         }
         return getProjectInternal(projectId, AccessMode.NORMAL, InstantiationMode.EAGER).getProjectId();
     }

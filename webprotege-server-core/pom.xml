@@ -11,6 +11,14 @@
 
     <artifactId>webprotege-server-core</artifactId>
 
+    <repositories>
+        <repository>
+            <id>Sonatype</id>
+            <name>Sonatype</name>
+            <url>https://oss.sonatype.org/content/repositories/releases/</url>
+        </repository>
+    </repositories>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -254,6 +262,22 @@
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-math3</artifactId>
             <version>3.6.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.openrdf.sesame</groupId>
+            <artifactId>sesame-repository-sparql</artifactId>
+            <version>4.1.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.openrdf.sesame</groupId>
+            <artifactId>sesame-rio-nquads</artifactId>
+            <version>4.1.2</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.owlcs</groupId>
+            <artifactId>ontapi</artifactId>
+            <version>3.0.0</version>
+            <scope>compile</scope>
         </dependency>
 
     </dependencies>

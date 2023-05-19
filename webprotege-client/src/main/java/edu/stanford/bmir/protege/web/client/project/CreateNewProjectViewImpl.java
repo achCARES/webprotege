@@ -73,14 +73,15 @@ public class CreateNewProjectViewImpl extends Composite implements CreateNewProj
 
     @Nonnull
     @Override
-    public String getProjectTboxGraph() {
-        return projectTboxGraphField.getText().trim();
+    public String getProjectEndpoint() {
+        return projectEndpointField.getText().trim();
     }
+
 
     @Nonnull
     @Override
-    public String getProjectEndpoint() {
-        return projectEndpointField.getText().trim();
+    public String getProjectTboxGraph() {
+        return projectTboxGraphField.getText().trim();
     }
 
     @Nonnull

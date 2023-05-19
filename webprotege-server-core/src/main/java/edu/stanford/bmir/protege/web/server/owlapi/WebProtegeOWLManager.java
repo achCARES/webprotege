@@ -43,6 +43,6 @@ public class WebProtegeOWLManager {
         manager.getOntologyFactories().add(ontologyFactory);
         manager.getOntologyParsers().add(new BinaryOWLOntologyDocumentParserFactory());
         manager.getOntologyStorers().add(new BinaryOWLStorerFactory());
-
+        manager.getOntologyStorers().add((new SparqlEndpointOWLStorerFactory()));
     }
 }

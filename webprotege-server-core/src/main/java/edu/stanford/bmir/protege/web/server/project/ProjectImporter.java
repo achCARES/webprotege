@@ -1,10 +1,12 @@
 package edu.stanford.bmir.protege.web.server.project;
 
+
 import com.google.auto.factory.AutoFactory;
 import com.google.auto.factory.Provided;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
 import edu.stanford.bmir.protege.web.server.change.*;
+import edu.stanford.bmir.protege.web.server.owlapi.SparqlEndpointOWLStorerFactory;
 import edu.stanford.bmir.protege.web.server.revision.Revision;
 import edu.stanford.bmir.protege.web.server.revision.RevisionStoreFactory;
 import edu.stanford.bmir.protege.web.server.upload.DocumentResolver;
@@ -14,7 +16,9 @@ import edu.stanford.bmir.protege.web.shared.csv.DocumentId;
 import edu.stanford.bmir.protege.web.shared.project.ProjectId;
 import edu.stanford.bmir.protege.web.shared.revision.RevisionNumber;
 import edu.stanford.bmir.protege.web.shared.user.UserId;
-import org.semanticweb.owlapi.model.OWLOntologyCreationException;
+import org.semanticweb.owlapi.apibinding.OWLManager;
+import org.semanticweb.owlapi.formats.NQuadsDocumentFormat;
+import org.semanticweb.owlapi.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,7 +66,7 @@ public class ProjectImporter {
 
 
     public void createProjectFromSources(DocumentId sourcesId,
-                                         UserId owner) throws IOException, OWLOntologyCreationException {
+                                         UserId owner, IRI sparqlEndpoint, String tboxGraph) throws IOException, OWLOntologyCreationException {
         logger.info("{} Creating project from sources", projectId);
         var stopwatch = Stopwatch.createStarted();
         var uploadedOntologies = uploadedOntologiesProcessor.getUploadedOntologies(sourcesId);
@@ -70,14 +74,15 @@ public class ProjectImporter {
         var memoryMonitor = new MemoryMonitor(logger);
         memoryMonitor.logMemoryUsage();
         logger.info("{} Writing change log", projectId);
-        generateInitialChanges(owner, uploadedOntologies);
+        generateInitialChanges(owner, uploadedOntologies, sparqlEndpoint, tboxGraph);
         deleteSourceFile(sourcesId);
         logger.info("{} Project creation from sources complete in {} ms", projectId, stopwatch.elapsed(TimeUnit.MILLISECONDS));
         memoryMonitor.logMemoryUsage();
 
     }
 
-    private void generateInitialChanges(UserId owner, Collection<Ontology> uploadedOntologies) {
+    //@todo: Store to SPARQL ENDPOINT - ontology is loaded at this point
+    private void generateInitialChanges(UserId owner, Collection<Ontology> uploadedOntologies, IRI sparqlEndpoint, String tboxGraph) {
         ImmutableList<OntologyChange> changeRecords = getInitialChangeRecords(uploadedOntologies);
         logger.info("{} Writing initial revision containing {} change records", projectId, changeRecords.size());
         Stopwatch stopwatch = Stopwatch.createStarted();
@@ -90,6 +95,31 @@ public class ProjectImporter {
                         System.currentTimeMillis(),
                         "Initial import"));
         logger.info("{} Initial revision written in {} ms", projectId, stopwatch.elapsed(TimeUnit.MILLISECONDS));
+        uploadOntologiesToSparqlEnpoint(uploadedOntologies, sparqlEndpoint, tboxGraph);
+    }
+
+    private void uploadOntologiesToSparqlEnpoint(Collection<Ontology> uploadedOntologies, IRI sparqlEndpoint, String tboxGraph) {
+        OWLOntologyManager manager = OWLManager.createOWLOntologyManager();
+        OWLStorer storer = new SparqlEndpointOWLStorerFactory().setEndpoint(sparqlEndpoint).setTboxGraph(tboxGraph).get();
+
+        try {
+            for (Ontology o : uploadedOntologies) {
+                NQuadsDocumentFormat format = new NQuadsDocumentFormat();
+                try {
+                    IRI oiri = o.getOntologyId().getOntologyIRI().get();
+                    OWLOntology owl = manager.createOntology(o.getAxioms());
+                    OWLOntologyID owlId = new OWLOntologyID(oiri);
+                    SetOntologyID setOntologyID = new SetOntologyID(owl, owlId);
+                    manager.applyChange(setOntologyID);
+                    manager.setOntologyDocumentIRI(owl, oiri);
+                    storer.storeOntology(owl, oiri, format);
+                } catch (OWLOntologyCreationException | OWLOntologyStorageException | IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private ImmutableList<OntologyChange> getInitialChangeRecords(Collection<Ontology> ontologies) {

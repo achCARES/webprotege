@@ -21,11 +21,13 @@ public interface CreateNewProjectView extends HasInitialFocusable, IsWidget {
     @Nonnull
     String getProjectName();
 
-    @Nonnull
-    String getProjectTboxGraph();
 
     @Nonnull
     String getProjectEndpoint();
+
+    @Nonnull
+    String getProjectTboxGraph();
+
 
     /**
      * Gets a description for the new project.
