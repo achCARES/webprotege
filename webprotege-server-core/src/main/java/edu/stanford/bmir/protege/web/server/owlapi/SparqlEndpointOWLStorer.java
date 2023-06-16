@@ -1,5 +1,6 @@
 package edu.stanford.bmir.protege.web.server.owlapi;
 
+import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import javax.annotation.Nonnull;
@@ -11,6 +12,7 @@ import org.openrdf.repository.sparql.SPARQLConnection;
 import org.openrdf.repository.sparql.SPARQLRepository;
 import org.openrdf.rio.RDFFormat;
 import org.semanticweb.owlapi.formats.NQuadsDocumentFormat;
+import org.semanticweb.owlapi.formats.NTriplesDocumentFormat;
 import org.semanticweb.owlapi.io.OWLOntologyDocumentTarget;
 import org.semanticweb.owlapi.io.StringDocumentTarget;
 import org.semanticweb.owlapi.model.IRI;
@@ -18,6 +20,7 @@ import org.semanticweb.owlapi.model.OWLDocumentFormat;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyStorageException;
 import org.semanticweb.owlapi.model.OWLStorer;
+import org.semanticweb.owlapi.rio.RioNQuadsStorerFactory;
 
 public class SparqlEndpointOWLStorer implements OWLStorer {
 
@@ -58,7 +61,7 @@ public class SparqlEndpointOWLStorer implements OWLStorer {
   private String prepareOntology(OWLOntology owlOntology, IRI iri, org.openrdf.model.IRI tBoxGraphIri)
           throws IOException, OWLOntologyStorageException {
     StringDocumentTarget sdt = new StringDocumentTarget();
-    NQuadsDocumentFormat format = new NQuadsDocumentFormat();
+    NTriplesDocumentFormat format = new NTriplesDocumentFormat();
 
     this.storeOntology(owlOntology, sdt, format);
 
@@ -68,6 +71,9 @@ public class SparqlEndpointOWLStorer implements OWLStorer {
     ont = ont.replace(" .", "> .");
     ont = ont.replace(">>", ">");
     ont = ont.replace("\">", "\"");
+    //remove language tags because of some issues with language tagged literals during parsing via SPARQLConnection.add()
+    ont = ont.replaceAll("@([a-z]{2})>", "");
+    ont = ont.replaceAll("@([a-z]{2}-[A-Z]{2,3})>", "");
     ont = ont.replace(" .", " <" + tBoxGraphIri + "> .");
 
     return ont;
@@ -77,7 +83,7 @@ public class SparqlEndpointOWLStorer implements OWLStorer {
   public void storeOntology(@Nonnull OWLOntology owlOntology,
       @Nonnull OWLOntologyDocumentTarget owlOntologyDocumentTarget,
       @Nonnull OWLDocumentFormat owlDocumentFormat)
-      throws OWLOntologyStorageException, IOException {
+      throws OWLOntologyStorageException {
       owlOntology.saveOntology(owlDocumentFormat, owlOntologyDocumentTarget);
   }
 

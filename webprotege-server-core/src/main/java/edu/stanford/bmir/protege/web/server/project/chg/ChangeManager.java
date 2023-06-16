@@ -20,6 +20,7 @@ import edu.stanford.bmir.protege.web.server.lang.ActiveLanguagesManager;
 import edu.stanford.bmir.protege.web.server.owlapi.OWLEntityCreator;
 import edu.stanford.bmir.protege.web.server.owlapi.RenameMap;
 import edu.stanford.bmir.protege.web.server.owlapi.RenameMapFactory;
+import edu.stanford.bmir.protege.web.server.owlapi.SparqlEndpointOWLStorerFactory;
 import edu.stanford.bmir.protege.web.server.project.BuiltInPrefixDeclarations;
 import edu.stanford.bmir.protege.web.server.project.DefaultOntologyIdManager;
 import edu.stanford.bmir.protege.web.server.project.PrefixDeclarationsStore;
@@ -38,13 +39,16 @@ import edu.stanford.bmir.protege.web.shared.entity.FreshEntityIri;
 import edu.stanford.bmir.protege.web.shared.event.ProjectEvent;
 import edu.stanford.bmir.protege.web.shared.inject.ProjectSingleton;
 import edu.stanford.bmir.protege.web.shared.permissions.PermissionDeniedException;
+import edu.stanford.bmir.protege.web.shared.project.ProjectDetails;
 import edu.stanford.bmir.protege.web.shared.project.ProjectId;
 import edu.stanford.bmir.protege.web.shared.user.UserId;
+import org.semanticweb.owlapi.formats.NQuadsDocumentFormat;
 import org.semanticweb.owlapi.model.*;
 
 import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import javax.inject.Provider;
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -504,13 +508,36 @@ public class ChangeManager implements HasApplyChanges {
         var changeDescription = changeList.getMessage(finalResult);
 
         // Log the changes
-        var revision = changeManager.addRevision(userId, changes, changeDescription);
+            var revision = changeManager.addRevision(userId, changes, changeDescription);
+        try {
+            storeChangesToProjectEndpoint(revision);
+        } catch (IOException | OWLOntologyStorageException e) {
+            throw new RuntimeException(e);
+        }
 
         classHierarchyProvider.handleChanges(changes);
         objectPropertyHierarchyProvider.handleChanges(changes);
         dataPropertyHierarchyProvider.handleChanges(changes);
         annotationPropertyHierarchyProvider.handleChanges(changes);
         return revision;
+    }
+
+    /**
+     * Stores the ontology changes in the SPARQL endpoint configured for the project.
+     *
+     * @param revision - contains changes to be stored in a form of {@link Revision}
+     * @throws IOException - thrown by {@link OWLStorer}
+     * @throws OWLOntologyStorageException - thrown by {@link OWLStorer}
+     */
+    private void storeChangesToProjectEndpoint(Revision revision) throws IOException, OWLOntologyStorageException {
+        OWLOntologyID ontologyID = defaultOntologyIdManager.getDefaultOntologyId();
+        IRI ontologyIRI = ontologyID.getOntologyIRI().get();
+        OWLOntology owl = changeManager.getOntologyManagerForRevision(revision.getRevisionNumber()).getOntology(ontologyID);
+        ProjectDetails projectDetails = this.projectDetailsRepository.findOne(this.projectId).get();
+        IRI projectEndpoint = IRI.create(projectDetails.getProjectEndpoint());
+        String tboxGraph = projectDetails.getTboxGraph();
+        OWLStorer storer = new SparqlEndpointOWLStorerFactory().setEndpoint(projectEndpoint).setTboxGraph(tboxGraph).get();
+        storer.storeOntology(owl, ontologyIRI, new NQuadsDocumentFormat());
     }
 
     private <R> void generateAndDispatchHighLevelEvents(UserId userId,
