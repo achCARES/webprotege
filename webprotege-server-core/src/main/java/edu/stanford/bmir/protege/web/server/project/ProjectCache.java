@@ -1,23 +1,58 @@
 package edu.stanford.bmir.protege.web.server.project;
 
+import com.google.auto.factory.AutoFactory;
+import com.google.auto.factory.Provided;
 import com.google.common.base.Stopwatch;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Interner;
 import com.google.common.collect.Interners;
+import edu.stanford.bmir.protege.web.server.change.OntologyChange;
+import edu.stanford.bmir.protege.web.server.diff.OntologyDiff2OntologyChanges;
 import edu.stanford.bmir.protege.web.server.dispatch.impl.ProjectActionHandlerRegistry;
 import edu.stanford.bmir.protege.web.server.events.EventManager;
+import edu.stanford.bmir.protege.web.server.hierarchy.AnnotationPropertyHierarchyProviderImpl;
+import edu.stanford.bmir.protege.web.server.hierarchy.ClassHierarchyProviderImpl;
+import edu.stanford.bmir.protege.web.server.hierarchy.DataPropertyHierarchyProviderImpl;
+import edu.stanford.bmir.protege.web.server.hierarchy.ObjectPropertyHierarchyProviderImpl;
 import edu.stanford.bmir.protege.web.server.inject.ProjectComponent;
+import edu.stanford.bmir.protege.web.server.merge.AnnotationDiffCalculator;
+import edu.stanford.bmir.protege.web.server.merge.AxiomDiffCalculator;
+import edu.stanford.bmir.protege.web.server.merge.ModifiedProjectOntologiesCalculator;
+import edu.stanford.bmir.protege.web.server.merge.ModifiedProjectOntologiesCalculatorFactory;
+import edu.stanford.bmir.protege.web.server.merge.OntologyDiffCalculator;
+import edu.stanford.bmir.protege.web.server.owlapi.SparqlRepositoryFactory;
+import edu.stanford.bmir.protege.web.server.owlapi.WebProtegeOWLManager;
+import edu.stanford.bmir.protege.web.server.revision.Revision;
 import edu.stanford.bmir.protege.web.server.revision.RevisionManager;
+import edu.stanford.bmir.protege.web.server.revision.RevisionStore;
+import edu.stanford.bmir.protege.web.server.revision.RevisionStoreFactory;
 import edu.stanford.bmir.protege.web.shared.HasDispose;
 import edu.stanford.bmir.protege.web.shared.csv.DocumentId;
 import edu.stanford.bmir.protege.web.shared.event.ProjectEvent;
 import edu.stanford.bmir.protege.web.shared.inject.ApplicationSingleton;
-import edu.stanford.bmir.protege.web.shared.project.NewProjectSettings;
-import edu.stanford.bmir.protege.web.shared.project.ProjectAlreadyExistsException;
-import edu.stanford.bmir.protege.web.shared.project.ProjectDocumentNotFoundException;
-import edu.stanford.bmir.protege.web.shared.project.ProjectId;
+import edu.stanford.bmir.protege.web.shared.merge.OntologyDiff;
+import edu.stanford.bmir.protege.web.shared.project.*;
+import edu.stanford.bmir.protege.web.shared.revision.RevisionNumber;
+import edu.stanford.bmir.protege.web.shared.user.UserId;
+import java.text.Normalizer;
+import org.eclipse.rdf4j.model.Value;
+import org.eclipse.rdf4j.query.BindingSet;
+import org.eclipse.rdf4j.query.QueryResults;
+import org.eclipse.rdf4j.repository.sparql.SPARQLRepository;
+import org.eclipse.rdf4j.repository.util.Repositories;
+import org.eclipse.rdf4j.sparqlbuilder.core.query.Queries;
+import org.eclipse.rdf4j.sparqlbuilder.core.query.SelectQuery;
+import org.eclipse.rdf4j.sparqlbuilder.graphpattern.GraphPatterns;
+import org.eclipse.rdf4j.sparqlbuilder.graphpattern.TriplePattern;
+import org.eclipse.rdf4j.sparqlbuilder.rdf.Rdf;
+import org.semanticweb.owlapi.formats.NTriplesDocumentFormat;
 import org.semanticweb.owlapi.io.OWLParserException;
+import org.semanticweb.owlapi.io.StringDocumentSource;
 import org.semanticweb.owlapi.model.IRI;
+import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
+import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,6 +67,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.eclipse.rdf4j.sparqlbuilder.core.SparqlBuilder.*;
 
 /**
  * Author: Matthew Horridge<br>
@@ -60,6 +96,9 @@ public class ProjectCache implements HasDispose {
 
     private final ProjectImporterFactory projectImporterFactory;
 
+    @Nonnull
+    private final ModifiedProjectOntologiesCalculatorFactory diffCalculatorFactory;
+
     /**
      * Elapsed time from the last access after which a project should be considered dormant (and should therefore
      * be purged).  This can interact with the frequency with which clients poll the project event queue (which is
@@ -69,12 +108,34 @@ public class ProjectCache implements HasDispose {
 
     private final ProjectComponentFactory projectComponentFactory;
 
+    @Nonnull
+    private final ProjectDetailsManager projectDetailsManager;
+
+    @Nonnull
+    private final RevisionStoreFactory revisionStoreFactory;
+
+    @Nonnull
+    private final OntologyDiff2OntologyChanges ontologyDiff2OntologyChanges;
+
+    @Nonnull
+    private final ProjectDetailsRepository projectDetailsRepository;
+
     @Inject
     public ProjectCache(@Nonnull ProjectComponentFactory projectComponentFactory,
                         @Nonnull ProjectImporterFactory projectImporterFactory,
+                        @Nonnull ProjectDetailsManager projectDetailsManager,
+                        @Nonnull ModifiedProjectOntologiesCalculatorFactory modifiedProjectOntologiesCalculatorFactory,
+                        @Nonnull RevisionStoreFactory revisionStoreFactory,
+                        @Nonnull OntologyDiff2OntologyChanges ontologyDiff2OntologyChanges,
+                        @Nonnull ProjectDetailsRepository projectDetailsRepository,
                         @DormantProjectTime  long dormantProjectTime) {
         this.projectComponentFactory = checkNotNull(projectComponentFactory);
         this.projectImporterFactory = checkNotNull(projectImporterFactory);
+        this.projectDetailsManager = projectDetailsManager;
+        this.diffCalculatorFactory = modifiedProjectOntologiesCalculatorFactory;
+        this.revisionStoreFactory = checkNotNull(revisionStoreFactory);
+        this.ontologyDiff2OntologyChanges = checkNotNull(ontologyDiff2OntologyChanges);
+        this.projectDetailsRepository = projectDetailsRepository;
         projectIdInterner = Interners.newWeakInterner();
         this.dormantProjectTime = dormantProjectTime;
         logger.info("Dormant project time: {} milliseconds", dormantProjectTime);
@@ -158,6 +219,7 @@ public class ProjectCache implements HasDispose {
         synchronized (getInternedProjectId(projectId)) {
             try {
                 ProjectComponent projectComponent = getProjectInjector(projectId, instantiationMode);
+                ensureCurrentOntology(projectComponent);
                 if (accessMode == AccessMode.NORMAL) {
                     logProjectAccess(projectId);
                 }
@@ -167,6 +229,109 @@ public class ProjectCache implements HasDispose {
                 throw new RuntimeException(e);
             }
         }
+    }
+
+    private void ensureCurrentOntology(ProjectComponent projectComponent) {
+        RevisionManager revisionManager = projectComponent.getRevisionManager();
+        OWLOntologyManager owlOntologyManager = projectComponent.getRevisionManager()
+                .getOntologyManagerForRevision(revisionManager.getCurrentRevision());
+        ProjectId projectId = projectComponent.getProjectId();
+        ProjectDetails projectDetails = projectDetailsManager.getProjectDetails(projectId);
+        UserId userId = projectDetails.getOwner();
+        IRI projectEndpoint = IRI.create(projectDetails.getProjectEndpoint());
+        String tboxGraph = projectDetails.getTboxGraph();
+        Set<OWLOntology> projectOntologies = owlOntologyManager.getOntologies();
+
+        for (OWLOntology ontology :  projectOntologies) {
+            owlOntologyManager.removeOntology(ontology);
+        }
+
+        OWLOntology endpointStoredOntology = getOntologyFromEndpoint(projectEndpoint, tboxGraph, owlOntologyManager);
+
+        for (OWLOntology ontology :  projectOntologies) {
+            if (ontology.getOntologyID().equals(endpointStoredOntology.getOntologyID())) {
+                if (!ontology.getAxioms().equals(endpointStoredOntology.getAxioms())) {
+                    ImmutableList<OntologyChange> changes = getOntologyChanges(ontology, endpointStoredOntology);
+                    Revision rev = revisionManager.addRevision(userId, changes, "Changed at endpoint.");
+                    projectDetailsRepository.setModified(projectId, rev.getTimestamp(), userId);
+                }
+            }
+        }
+
+    }
+
+    private ImmutableList<OntologyChange> getOntologyChanges(OWLOntology ontologyA, OWLOntology ontologyB) {
+        HashSet<Ontology> ontologySetA = new HashSet<>();
+        HashSet<Ontology> ontologySetB = new HashSet<>();
+        ontologySetA.add(Ontology.get(ontologyA.getOntologyID(),
+            ontologyA.getImportsDeclarations(),
+            ontologyA.getAnnotations(),
+            ontologyA.getAxioms()));
+        ontologySetB.add(Ontology.get(ontologyB.getOntologyID(),
+            ontologyB.getImportsDeclarations(),
+            ontologyB.getAnnotations(),
+            ontologyB.getAxioms()));
+        ModifiedProjectOntologiesCalculator calculator = diffCalculatorFactory.create(
+            ontologySetA, ontologySetB);
+        Set<OntologyDiff> ontologyDiffSet = calculator.getModifiedOntologyDiffs();
+        ImmutableList.Builder<OntologyChange> changeList = ImmutableList.builder();
+        for(OntologyDiff diff : ontologyDiffSet) {
+            List<OntologyChange> changes = ontologyDiff2OntologyChanges.getOntologyChangesFromDiff(diff);
+            changeList.addAll(changes);
+        }
+        return changeList.build();
+    }
+
+    private OWLOntology getOntologyFromEndpoint(IRI projectEndpoint, String tboxGraph, OWLOntologyManager owlOntologyManager) {
+
+        List<BindingSet> results = getAllQueryResultsFomGraph(projectEndpoint, tboxGraph);
+
+        String triples = convertQueryResultsToNtriples(results);
+
+        try {
+            owlOntologyManager.loadOntologyFromOntologyDocument(new StringDocumentSource(triples, projectEndpoint, new NTriplesDocumentFormat(), "application/n-triples"));
+        } catch (OWLOntologyCreationException e) {
+            throw new RuntimeException(e);
+        }
+
+        return owlOntologyManager.getOntologies().iterator().next();
+    }
+
+    private List<BindingSet> getAllQueryResultsFomGraph(IRI endpoint, String graph) {
+        SPARQLRepository repo = new SparqlRepositoryFactory().setEndpoint(endpoint).get();
+
+        TriplePattern spo = GraphPatterns.tp(var("s"), var("p"), var("o"));
+
+        SelectQuery selectQuery = Queries.SELECT()
+            .base(Rdf.iri(endpoint.toString()))
+            .all()
+            .from(from(Rdf.iri(graph + "/")))
+            .where(spo);
+
+        return Repositories.tupleQuery(repo, selectQuery.getQueryString(), r -> QueryResults.asList(r));
+    }
+
+    private String convertQueryResultsToNtriples(List<BindingSet> results) {
+        String triples = "";
+
+        Iterator it = results.iterator();
+
+        while (it.hasNext()) {
+            BindingSet binding = (BindingSet) it.next();
+            Value sv = binding.getBinding("s").getValue();
+            Value pv = binding.getBinding("p").getValue();
+            Value ov = binding.getBinding("o").getValue();
+            String s = (sv.isResource()) ? "<" + sv.stringValue() + ">" :
+                "\"" +  Normalizer.normalize(sv.stringValue(), Normalizer.Form.NFKC) + "\"";
+            String p = (pv.isResource()) ? "<" + pv.stringValue() + ">" :
+                "\"" +  Normalizer.normalize(pv.stringValue(), Normalizer.Form.NFKC) + "\"";
+            String o = (ov.isResource()) ? "<" + ov.stringValue() + ">" :
+                "\"" +  Normalizer.normalize(ov.stringValue(), Normalizer.Form.NFKC) + "\"";
+
+            triples = triples.concat(s + " " + p + " " + o + " .\n");
+        }
+
+        return triples;
     }
 
     private ProjectComponent getProjectInjector(ProjectId projectId, InstantiationMode instantiationMode) {
@@ -209,7 +374,9 @@ public class ProjectCache implements HasDispose {
             importer.createProjectFromSources(sourceDocumentId.get(), newProjectSettings.getProjectOwner(),
                 sparqlEndpoint, tboxGraph);
         }
-        return getProjectInternal(projectId, AccessMode.NORMAL, InstantiationMode.EAGER).getProjectId();
+        ProjectComponent projectComponent = getProjectInternal(projectId, AccessMode.NORMAL, InstantiationMode.EAGER);
+
+        return projectComponent.getProjectId();
     }
 
     public void purge(ProjectId projectId) {

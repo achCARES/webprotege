@@ -81,7 +81,6 @@ public class ProjectImporter {
 
     }
 
-    //@todo: Store to SPARQL ENDPOINT - ontology is loaded at this point
     private void generateInitialChanges(UserId owner, Collection<Ontology> uploadedOntologies, IRI sparqlEndpoint, String tboxGraph) {
         ImmutableList<OntologyChange> changeRecords = getInitialChangeRecords(uploadedOntologies);
         logger.info("{} Writing initial revision containing {} change records", projectId, changeRecords.size());
