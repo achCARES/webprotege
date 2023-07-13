@@ -1,16 +1,15 @@
 package edu.stanford.bmir.protege.web.server.owlapi;
 
-import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.lang.StringUtils;
-import org.openrdf.model.impl.SimpleValueFactory;
-import org.openrdf.repository.RepositoryConnection;
-import org.openrdf.repository.sparql.SPARQLConnection;
-import org.openrdf.repository.sparql.SPARQLRepository;
-import org.openrdf.rio.RDFFormat;
+import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
+import org.eclipse.rdf4j.repository.RepositoryConnection;
+import org.eclipse.rdf4j.repository.sparql.SPARQLConnection;
+import org.eclipse.rdf4j.repository.sparql.SPARQLRepository;
+import org.eclipse.rdf4j.rio.RDFFormat;
 import org.semanticweb.owlapi.formats.NQuadsDocumentFormat;
 import org.semanticweb.owlapi.formats.NTriplesDocumentFormat;
 import org.semanticweb.owlapi.io.OWLOntologyDocumentTarget;
@@ -20,7 +19,6 @@ import org.semanticweb.owlapi.model.OWLDocumentFormat;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyStorageException;
 import org.semanticweb.owlapi.model.OWLStorer;
-import org.semanticweb.owlapi.rio.RioNQuadsStorerFactory;
 
 public class SparqlEndpointOWLStorer implements OWLStorer {
 
@@ -39,7 +37,7 @@ public class SparqlEndpointOWLStorer implements OWLStorer {
 
     SPARQLConnection con = (SPARQLConnection) getRepositoryConnection();
 
-    org.openrdf.model.IRI tBoxGraphIri = SimpleValueFactory.getInstance().createIRI(
+    org.eclipse.rdf4j.model.IRI tBoxGraphIri = SimpleValueFactory.getInstance().createIRI(
             StringUtils.removeEnd(storeEndpoint.toString(), "/") + "/"
                     + (tboxGraph.replaceAll("/", "") + "/"));
 
@@ -50,15 +48,11 @@ public class SparqlEndpointOWLStorer implements OWLStorer {
   }
 
   private RepositoryConnection getRepositoryConnection() {
-    SPARQLRepository repo = new SPARQLRepository(storeEndpoint.toString());
-    repo.enableQuadMode(true);
-    if (!repo.isInitialized()) {
-      repo.initialize();
-    }
+    SPARQLRepository repo = new SparqlRepositoryFactory().setEndpoint(storeEndpoint).get();
     return repo.getConnection();
   }
 
-  private String prepareOntology(OWLOntology owlOntology, IRI iri, org.openrdf.model.IRI tBoxGraphIri)
+  private String prepareOntology(OWLOntology owlOntology, IRI iri, org.eclipse.rdf4j.model.IRI tBoxGraphIri)
           throws IOException, OWLOntologyStorageException {
     StringDocumentTarget sdt = new StringDocumentTarget();
     NTriplesDocumentFormat format = new NTriplesDocumentFormat();

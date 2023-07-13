@@ -13,9 +13,9 @@
 
     <repositories>
         <repository>
-            <id>Sonatype</id>
-            <name>Sonatype</name>
-            <url>https://oss.sonatype.org/content/repositories/releases/</url>
+            <id>Central</id>
+            <name>Central</name>
+            <url>https://repo1.maven.org/maven2/</url>
         </repository>
     </repositories>
 
@@ -264,20 +264,36 @@
             <version>3.6.1</version>
         </dependency>
         <dependency>
-            <groupId>org.openrdf.sesame</groupId>
-            <artifactId>sesame-repository-sparql</artifactId>
-            <version>4.1.2</version>
+            <groupId>org.eclipse.rdf4j</groupId>
+            <artifactId>rdf4j-repository-sparql</artifactId>
+            <version>4.3.3</version>
         </dependency>
         <dependency>
-            <groupId>org.openrdf.sesame</groupId>
-            <artifactId>sesame-rio-nquads</artifactId>
-            <version>4.1.2</version>
+            <groupId>org.eclipse.rdf4j</groupId>
+            <artifactId>rdf4j-rio-nquads</artifactId>
+            <version>4.3.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.rdf4j</groupId>
+            <artifactId>rdf4j-sparqlbuilder</artifactId>
+            <version>4.3.3</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.eclipse.rdf4j/rdf4j-model -->
+        <dependency>
+            <groupId>org.eclipse.rdf4j</groupId>
+            <artifactId>rdf4j-model</artifactId>
+            <version>4.3.3</version>
         </dependency>
         <dependency>
             <groupId>com.github.owlcs</groupId>
             <artifactId>ontapi</artifactId>
             <version>3.0.0</version>
             <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.rdf4j</groupId>
+            <artifactId>rdf4j-queryresultio-api</artifactId>
+            <version>4.3.3</version>
         </dependency>
 
     </dependencies>
