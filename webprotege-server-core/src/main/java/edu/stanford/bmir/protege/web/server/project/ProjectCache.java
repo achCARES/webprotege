@@ -7,7 +7,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Interner;
 import com.google.common.collect.Interners;
+import edu.stanford.bmir.protege.web.server.change.ChangeListGenerator;
 import edu.stanford.bmir.protege.web.server.change.OntologyChange;
+import edu.stanford.bmir.protege.web.server.change.RevisionAddedChangeListGenerator;
+import edu.stanford.bmir.protege.web.server.change.RevisionReverterChangeListGenerator;
+import edu.stanford.bmir.protege.web.server.change.RevisionReverterChangeListGeneratorFactory;
 import edu.stanford.bmir.protege.web.server.diff.OntologyDiff2OntologyChanges;
 import edu.stanford.bmir.protege.web.server.dispatch.impl.ProjectActionHandlerRegistry;
 import edu.stanford.bmir.protege.web.server.events.EventManager;
@@ -23,6 +27,8 @@ import edu.stanford.bmir.protege.web.server.merge.ModifiedProjectOntologiesCalcu
 import edu.stanford.bmir.protege.web.server.merge.OntologyDiffCalculator;
 import edu.stanford.bmir.protege.web.server.owlapi.SparqlRepositoryFactory;
 import edu.stanford.bmir.protege.web.server.owlapi.WebProtegeOWLManager;
+import edu.stanford.bmir.protege.web.server.project.chg.ChangeManager;
+import edu.stanford.bmir.protege.web.server.project.chg.ChangeManager_Factory;
 import edu.stanford.bmir.protege.web.server.revision.Revision;
 import edu.stanford.bmir.protege.web.server.revision.RevisionManager;
 import edu.stanford.bmir.protege.web.server.revision.RevisionStore;
@@ -117,9 +123,6 @@ public class ProjectCache implements HasDispose {
     @Nonnull
     private final OntologyDiff2OntologyChanges ontologyDiff2OntologyChanges;
 
-    @Nonnull
-    private final ProjectDetailsRepository projectDetailsRepository;
-
     @Inject
     public ProjectCache(@Nonnull ProjectComponentFactory projectComponentFactory,
                         @Nonnull ProjectImporterFactory projectImporterFactory,
@@ -127,7 +130,6 @@ public class ProjectCache implements HasDispose {
                         @Nonnull ModifiedProjectOntologiesCalculatorFactory modifiedProjectOntologiesCalculatorFactory,
                         @Nonnull RevisionStoreFactory revisionStoreFactory,
                         @Nonnull OntologyDiff2OntologyChanges ontologyDiff2OntologyChanges,
-                        @Nonnull ProjectDetailsRepository projectDetailsRepository,
                         @DormantProjectTime  long dormantProjectTime) {
         this.projectComponentFactory = checkNotNull(projectComponentFactory);
         this.projectImporterFactory = checkNotNull(projectImporterFactory);
@@ -135,7 +137,8 @@ public class ProjectCache implements HasDispose {
         this.diffCalculatorFactory = modifiedProjectOntologiesCalculatorFactory;
         this.revisionStoreFactory = checkNotNull(revisionStoreFactory);
         this.ontologyDiff2OntologyChanges = checkNotNull(ontologyDiff2OntologyChanges);
-        this.projectDetailsRepository = projectDetailsRepository;
+
+
         projectIdInterner = Interners.newWeakInterner();
         this.dormantProjectTime = dormantProjectTime;
         logger.info("Dormant project time: {} milliseconds", dormantProjectTime);
@@ -232,32 +235,39 @@ public class ProjectCache implements HasDispose {
     }
 
     private void ensureCurrentOntology(ProjectComponent projectComponent) {
-        RevisionManager revisionManager = projectComponent.getRevisionManager();
-        OWLOntologyManager owlOntologyManager = projectComponent.getRevisionManager()
-                .getOntologyManagerForRevision(revisionManager.getCurrentRevision());
         ProjectId projectId = projectComponent.getProjectId();
-        ProjectDetails projectDetails = projectDetailsManager.getProjectDetails(projectId);
-        UserId userId = projectDetails.getOwner();
-        IRI projectEndpoint = IRI.create(projectDetails.getProjectEndpoint());
-        String tboxGraph = projectDetails.getTboxGraph();
-        Set<OWLOntology> projectOntologies = owlOntologyManager.getOntologies();
+        if (projectDetailsManager.isExistingProject(projectId)) {
+            RevisionManager revisionManager = projectComponent.getRevisionManager();
+            OWLOntologyManager owlOntologyManager = projectComponent.getRevisionManager()
+                .getOntologyManagerForRevision(revisionManager.getCurrentRevision());
+            ProjectDetails projectDetails = projectDetailsManager.getProjectDetails(projectId);
+            UserId userId = projectDetails.getOwner();
+            IRI projectEndpoint = IRI.create(projectDetails.getProjectEndpoint());
+            String tboxGraph = projectDetails.getTboxGraph();
+            Set<OWLOntology> projectOntologies = owlOntologyManager.getOntologies();
 
-        for (OWLOntology ontology :  projectOntologies) {
-            owlOntologyManager.removeOntology(ontology);
-        }
+            for (OWLOntology ontology : projectOntologies) {
+                owlOntologyManager.removeOntology(ontology);
+            }
 
-        OWLOntology endpointStoredOntology = getOntologyFromEndpoint(projectEndpoint, tboxGraph, owlOntologyManager);
+            OWLOntology endpointStoredOntology = getOntologyFromEndpoint(projectEndpoint, tboxGraph,
+                owlOntologyManager);
 
-        for (OWLOntology ontology :  projectOntologies) {
-            if (ontology.getOntologyID().equals(endpointStoredOntology.getOntologyID())) {
-                if (!ontology.getAxioms().equals(endpointStoredOntology.getAxioms())) {
-                    ImmutableList<OntologyChange> changes = getOntologyChanges(ontology, endpointStoredOntology);
-                    Revision rev = revisionManager.addRevision(userId, changes, "Changed at endpoint.");
-                    projectDetailsRepository.setModified(projectId, rev.getTimestamp(), userId);
+            for (OWLOntology ontology : projectOntologies) {
+                if (ontology.getOntologyID().equals(endpointStoredOntology.getOntologyID())) {
+                    if (!ontology.getAxioms().equals(endpointStoredOntology.getAxioms())) {
+                        ImmutableList<OntologyChange> changes = getOntologyChanges(ontology,
+                            endpointStoredOntology);
+                        Revision rev = revisionManager.addRevision(userId, changes,
+                            "Changed at endpoint.");
+                        RevisionAddedChangeListGenerator changeListGenerator = projectComponent.getRevisionAddedChangeListGeneratorFactory()
+                            .create(rev.getRevisionNumber());
+                        projectComponent.getChangeManager()
+                            .applyChanges(userId, changeListGenerator);
+                    }
                 }
             }
         }
-
     }
 
     private ImmutableList<OntologyChange> getOntologyChanges(OWLOntology ontologyA, OWLOntology ontologyB) {
@@ -305,7 +315,7 @@ public class ProjectCache implements HasDispose {
         SelectQuery selectQuery = Queries.SELECT()
             .base(Rdf.iri(endpoint.toString()))
             .all()
-            .from(from(Rdf.iri(graph + "/")))
+            .from(from(Rdf.iri((graph + "/").replace("//", "/"))))
             .where(spo);
 
         return Repositories.tupleQuery(repo, selectQuery.getQueryString(), r -> QueryResults.asList(r));
