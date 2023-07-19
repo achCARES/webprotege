@@ -65,7 +65,7 @@
 
         .main > a {
             color: #c0c0c0;
-            visibility: hidden;
+            visibility: visible;
         }
 
         .main > a:hover {
