@@ -25,6 +25,8 @@ public class SparqlEndpointOWLStorer implements OWLStorer {
   IRI storeEndpoint;
   String tboxGraph;
 
+  public static String PREF_SKOLEM = "SKOLEMIZED-";
+
   @Override
   public boolean canStoreOntology(@Nonnull OWLDocumentFormat owlDocumentFormat) {
     return owlDocumentFormat instanceof NQuadsDocumentFormat;
@@ -60,7 +62,7 @@ public class SparqlEndpointOWLStorer implements OWLStorer {
     this.storeOntology(owlOntology, sdt, format);
 
     String ont = sdt.toString();
-    ont = ont.replace("_:", "<" + iri + "#");
+    ont = ont.replace("_:", "<" + iri + "#" + PREF_SKOLEM);
     ont = ont.replace(" <http", "> <http");
     ont = ont.replace(" .", "> .");
     ont = ont.replace(">>", ">");

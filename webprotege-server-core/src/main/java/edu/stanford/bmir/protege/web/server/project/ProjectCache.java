@@ -25,6 +25,7 @@ import edu.stanford.bmir.protege.web.server.merge.AxiomDiffCalculator;
 import edu.stanford.bmir.protege.web.server.merge.ModifiedProjectOntologiesCalculator;
 import edu.stanford.bmir.protege.web.server.merge.ModifiedProjectOntologiesCalculatorFactory;
 import edu.stanford.bmir.protege.web.server.merge.OntologyDiffCalculator;
+import edu.stanford.bmir.protege.web.server.owlapi.SparqlEndpointOWLStorer;
 import edu.stanford.bmir.protege.web.server.owlapi.SparqlRepositoryFactory;
 import edu.stanford.bmir.protege.web.server.owlapi.WebProtegeOWLManager;
 import edu.stanford.bmir.protege.web.server.project.chg.ChangeManager;
@@ -292,6 +293,7 @@ public class ProjectCache implements HasDispose {
         return changeList.build();
     }
 
+
     private OWLOntology getOntologyFromEndpoint(IRI projectEndpoint, String tboxGraph, OWLOntologyManager owlOntologyManager) {
 
         List<BindingSet> results = getAllQueryResultsFomGraph(projectEndpoint, tboxGraph);
@@ -328,20 +330,31 @@ public class ProjectCache implements HasDispose {
 
         while (it.hasNext()) {
             BindingSet binding = (BindingSet) it.next();
-            Value sv = binding.getBinding("s").getValue();
-            Value pv = binding.getBinding("p").getValue();
-            Value ov = binding.getBinding("o").getValue();
-            String s = (sv.isResource()) ? "<" + sv.stringValue() + ">" :
-                "\"" +  Normalizer.normalize(sv.stringValue(), Normalizer.Form.NFKC) + "\"";
-            String p = (pv.isResource()) ? "<" + pv.stringValue() + ">" :
-                "\"" +  Normalizer.normalize(pv.stringValue(), Normalizer.Form.NFKC) + "\"";
-            String o = (ov.isResource()) ? "<" + ov.stringValue() + ">" :
-                "\"" +  Normalizer.normalize(ov.stringValue(), Normalizer.Form.NFKC) + "\"";
+
+            String s = getNtripleValueFromBinding(binding.getBinding("s").getValue());
+            String p = getNtripleValueFromBinding(binding.getBinding("p").getValue());
+            String o = getNtripleValueFromBinding(binding.getBinding("o").getValue());
 
             triples = triples.concat(s + " " + p + " " + o + " .\n");
         }
 
         return triples;
+    }
+
+    private String getNtripleValueFromBinding(Value bindingValue) {
+        String ntripleValue;
+        String stringValue = bindingValue.stringValue();
+        if (bindingValue.isResource()) {
+            if (stringValue.contains(SparqlEndpointOWLStorer.PREF_SKOLEM)) {
+                int index = stringValue.lastIndexOf('#');
+                ntripleValue = stringValue.substring(index +1).replace(SparqlEndpointOWLStorer.PREF_SKOLEM, "_:");
+            } else {
+                ntripleValue = "<" + stringValue + ">";
+            }
+        } else {
+            ntripleValue = "\"" + Normalizer.normalize(stringValue, Normalizer.Form.NFKC) + "\"";
+        }
+        return ntripleValue;
     }
 
     private ProjectComponent getProjectInjector(ProjectId projectId, InstantiationMode instantiationMode) {
