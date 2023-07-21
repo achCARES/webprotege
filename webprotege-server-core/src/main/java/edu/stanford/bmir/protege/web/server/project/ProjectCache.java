@@ -86,6 +86,10 @@ import static org.eclipse.rdf4j.sparqlbuilder.core.SparqlBuilder.*;
 @ApplicationSingleton
 public class ProjectCache implements HasDispose {
 
+    private static final String MSG_CHANGE_ENDPOINT = "Changed at endpoint.";
+
+    private static final int ENDPOINT_CHECKING_INTERVAL_MINS = 1;
+
     private static final Logger logger = LoggerFactory.getLogger(ProjectCache.class);
 
     private final Interner<ProjectId> projectIdInterner;
@@ -225,6 +229,7 @@ public class ProjectCache implements HasDispose {
             try {
                 ProjectComponent projectComponent = getProjectInjector(projectId, instantiationMode);
                 ensureCurrentOntology(projectComponent);
+
                 if (accessMode == AccessMode.NORMAL) {
                     logProjectAccess(projectId);
                 }
@@ -238,41 +243,44 @@ public class ProjectCache implements HasDispose {
 
     private void ensureCurrentOntology(ProjectComponent projectComponent) {
         ProjectId projectId = projectComponent.getProjectId();
-        if (projectDetailsManager.isExistingProject(projectId)) {
-            RevisionManager revisionManager = projectComponent.getRevisionManager();
-            RevisionNumber currentRevisionNo = revisionManager.getCurrentRevision();
+        long lastAccessTime =  getLastAccessTime(projectId);
+        Clock clock = Clock.systemUTC();
+        long currentTime = Instant.now(clock).toEpochMilli();
 
-            OWLOntologyManager owlOntologyManager = projectComponent.getRevisionManager()
-                .getOntologyManagerForRevision(currentRevisionNo );
-            ProjectDetails projectDetails = projectDetailsManager.getProjectDetails(projectId);
-            UserId userId = projectDetails.getOwner();
-            IRI projectEndpoint = IRI.create(projectDetails.getProjectEndpoint());
-            String tboxGraph = projectDetails.getTboxGraph();
-            Set<OWLOntology> projectOntologies = owlOntologyManager.getOntologies();
+        if (lastAccessTime < currentTime - ENDPOINT_CHECKING_INTERVAL_MINS * 60 * 1000) {
+            if (projectDetailsManager.isExistingProject(projectId)) {
+                RevisionManager revisionManager = projectComponent.getRevisionManager();
+                RevisionNumber currentRevisionNo = revisionManager.getCurrentRevision();
 
-            for (OWLOntology ontology : projectOntologies) {
-                owlOntologyManager.removeOntology(ontology);
-            }
+                OWLOntologyManager owlOntologyManager = projectComponent.getRevisionManager()
+                        .getOntologyManagerForRevision(currentRevisionNo);
+                ProjectDetails projectDetails = projectDetailsManager.getProjectDetails(projectId);
+                UserId userId = projectDetails.getOwner();
+                Set<OWLOntology> projectOntologies = owlOntologyManager.getOntologies();
 
-            OWLOntology endpointStoredOntology = getOntologyFromEndpoint(projectEndpoint, tboxGraph,
-                owlOntologyManager);
+                for (OWLOntology ontology : projectOntologies) {
+                    owlOntologyManager.removeOntology(ontology);
+                }
 
-            for (OWLOntology ontology : projectOntologies) {
-                if (ontology.getOntologyID().equals(endpointStoredOntology.getOntologyID())) {
-                    if (!ontology.getAxioms().equals(endpointStoredOntology.getAxioms())) {
-                        ImmutableList<OntologyChange> changes = getOntologyChanges(ontology,
-                            endpointStoredOntology);
-                        Revision rev = revisionManager.addRevision(userId, changes,
-                            "Changed at endpoint.");
-                        RevisionAddedChangeListGenerator changeListGenerator = projectComponent.getRevisionAddedChangeListGeneratorFactory()
-                            .create(rev.getRevisionNumber());
-                        projectComponent.getChangeManager()
-                            .applyChanges(userId, changeListGenerator);
+                OWLOntology endpointStoredOntology = getOntologyFromEndpoint(IRI.create(projectDetails.getProjectEndpoint()),
+                        projectDetails.getTboxGraph(), owlOntologyManager);
+
+                for (OWLOntology ontology : projectOntologies) {
+                    if (ontology.getOntologyID().equals(endpointStoredOntology.getOntologyID())) {
+                        if (!ontology.getAxioms().equals(endpointStoredOntology.getAxioms())) {
+                            ImmutableList<OntologyChange> changes = getOntologyChanges(ontology, endpointStoredOntology);
+                            Revision rev = revisionManager.addRevision(userId, changes, MSG_CHANGE_ENDPOINT);
+                            projectComponent.getChangeManager().applyChanges(userId,
+                                    projectComponent.getRevisionAddedChangeListGeneratorFactory().create(rev.getRevisionNumber()));
+                        }
                     }
                 }
             }
+            logProjectAccess(projectId);
         }
     }
+
+
 
     private ImmutableList<OntologyChange> getOntologyChanges(OWLOntology ontologyA, OWLOntology ontologyB) {
         HashSet<Ontology> ontologySetA = new HashSet<>();
