@@ -25,9 +25,7 @@ import edu.stanford.bmir.protege.web.server.merge.AxiomDiffCalculator;
 import edu.stanford.bmir.protege.web.server.merge.ModifiedProjectOntologiesCalculator;
 import edu.stanford.bmir.protege.web.server.merge.ModifiedProjectOntologiesCalculatorFactory;
 import edu.stanford.bmir.protege.web.server.merge.OntologyDiffCalculator;
-import edu.stanford.bmir.protege.web.server.owlapi.SparqlEndpointOWLStorer;
-import edu.stanford.bmir.protege.web.server.owlapi.SparqlRepositoryFactory;
-import edu.stanford.bmir.protege.web.server.owlapi.WebProtegeOWLManager;
+import edu.stanford.bmir.protege.web.server.owlapi.*;
 import edu.stanford.bmir.protege.web.server.project.chg.ChangeManager;
 import edu.stanford.bmir.protege.web.server.project.chg.ChangeManager_Factory;
 import edu.stanford.bmir.protege.web.server.revision.Revision;
@@ -73,6 +71,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.regex.Matcher;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.eclipse.rdf4j.sparqlbuilder.core.SparqlBuilder.*;
@@ -257,13 +256,10 @@ public class ProjectCache implements HasDispose {
                 ProjectDetails projectDetails = projectDetailsManager.getProjectDetails(projectId);
                 UserId userId = projectDetails.getOwner();
                 Set<OWLOntology> projectOntologies = owlOntologyManager.getOntologies();
-
-                for (OWLOntology ontology : projectOntologies) {
-                    owlOntologyManager.removeOntology(ontology);
-                }
-
-                OWLOntology endpointStoredOntology = getOntologyFromEndpoint(IRI.create(projectDetails.getProjectEndpoint()),
-                        projectDetails.getTboxGraph(), owlOntologyManager);
+                IRI projectEndpoint = IRI.create(projectDetails.getProjectEndpoint());
+                OWLLoader loader = new SparqlEndpointOWLLoaderFactory().setEndpoint(projectEndpoint)
+                        .setTboxGraph(projectDetails.getTboxGraph()).get();
+                OWLOntology endpointStoredOntology = loader.LoadOntology(projectEndpoint);
 
                 for (OWLOntology ontology : projectOntologies) {
                     if (ontology.getOntologyID().equals(endpointStoredOntology.getOntologyID())) {
@@ -409,70 +405,7 @@ public class ProjectCache implements HasDispose {
         }
         return sameAx;
     }
-
-    private OWLOntology getOntologyFromEndpoint(IRI projectEndpoint, String tboxGraph, OWLOntologyManager owlOntologyManager) {
-
-        List<BindingSet> results = getAllQueryResultsFomGraph(projectEndpoint, tboxGraph);
-
-        String triples = convertQueryResultsToNtriples(results);
-
-        try {
-            owlOntologyManager.loadOntologyFromOntologyDocument(new StringDocumentSource(triples, projectEndpoint, new NTriplesDocumentFormat(), "application/n-triples"));
-        } catch (OWLOntologyCreationException e) {
-            throw new RuntimeException(e);
-        }
-
-        return owlOntologyManager.getOntologies().iterator().next();
-    }
-
-    private List<BindingSet> getAllQueryResultsFomGraph(IRI endpoint, String graph) {
-        SPARQLRepository repo = new SparqlRepositoryFactory().setEndpoint(endpoint).get();
-
-        TriplePattern spo = GraphPatterns.tp(var("s"), var("p"), var("o"));
-
-        SelectQuery selectQuery = Queries.SELECT()
-            .base(Rdf.iri(endpoint.toString()))
-            .all()
-            .from(from(Rdf.iri((graph + "/").replace("//", "/"))))
-            .where(spo);
-
-        return Repositories.tupleQuery(repo, selectQuery.getQueryString(), r -> QueryResults.asList(r));
-    }
-
-    private String convertQueryResultsToNtriples(List<BindingSet> results) {
-        String triples = "";
-
-        Iterator it = results.iterator();
-
-        while (it.hasNext()) {
-            BindingSet binding = (BindingSet) it.next();
-
-            String s = getNtripleValueFromBinding(binding.getBinding("s").getValue());
-            String p = getNtripleValueFromBinding(binding.getBinding("p").getValue());
-            String o = getNtripleValueFromBinding(binding.getBinding("o").getValue());
-
-            triples = triples.concat(s + " " + p + " " + o + " .\n");
-        }
-
-        return triples;
-    }
-
-    private String getNtripleValueFromBinding(Value bindingValue) {
-        String ntripleValue;
-        String stringValue = bindingValue.stringValue();
-        if (bindingValue.isResource()) {
-            if (stringValue.contains(SparqlEndpointOWLStorer.PREF_SKOLEM)) {
-                int index = stringValue.lastIndexOf('#');
-                ntripleValue = stringValue.substring(index +1).replace(SparqlEndpointOWLStorer.PREF_SKOLEM, "_:");
-            } else {
-                ntripleValue = "<" + stringValue + ">";
-            }
-        } else {
-            ntripleValue = "\"" + Normalizer.normalize(stringValue, Normalizer.Form.NFKC) + "\"";
-        }
-        return ntripleValue;
-    }
-
+    
     private ProjectComponent getProjectInjector(ProjectId projectId, InstantiationMode instantiationMode) {
         ProjectComponent projectComponent = projectId2ProjectComponent.get(projectId);
         if (projectComponent == null) {
